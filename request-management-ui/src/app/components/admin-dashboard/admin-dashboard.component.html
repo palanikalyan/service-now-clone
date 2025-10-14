@@ -1,0 +1,33 @@
+<div class="dashboard-container">
+    <h2>Admin Request Dashboard</h2>
+
+    <div *ngIf="requests.length === 0" class="no-requests">
+        No pending requests to review.
+    </div>
+
+    <ul>
+        <li *ngFor="let r of requests">
+            <div class="request-header">
+                <span class="title">{{ r.title }}</span>
+                <span class="status" [ngClass]="{
+                    'pending': !r.status || r.status === 'PENDING',
+                    'approved': r.status === 'APPROVED',
+                    'rejected': r.status === 'REJECTED'
+                }">
+                    {{ r.status || 'PENDING' }}
+                </span>
+            </div>
+            
+            <div class="description">{{ r.description }}</div>
+            
+            <div class="date" *ngIf="r.createdAt">
+                Submitted: {{ r.createdAt | date:'medium' }}
+            </div>
+
+            <div class="actions" *ngIf="!r.status || r.status === 'PENDING'">
+                <button class="approve" (click)="approve(r.id)">Approve</button>
+                <button class="reject" (click)="reject(r.id)">Reject</button>
+            </div>
+        </li>
+    </ul>
+</div>

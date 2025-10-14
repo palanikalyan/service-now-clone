@@ -1,0 +1,22 @@
+<div class="login-wrapper card">
+	<div class="brand">
+		<h1>Request Management</h1>
+	</div>
+	<h2>Register</h2>
+	<form (ngSubmit)="submit()">
+		<label>Username</label>
+		<input name="username" [(ngModel)]="username" />
+
+		<label>Email</label>
+		<input name="email" [(ngModel)]="email" />
+
+		<label>Password</label>
+		<input type="password" name="password" [(ngModel)]="password" />
+
+		<div style="margin-top:12px">
+			<button type="submit">Register</button>
+		</div>
+	</form>
+	<p style="color:#a00" *ngIf="error">{{error}}</p>
+	<p style="margin-top:12px">Already registered? <a routerLink="/login">Login</a></p>
+</div>

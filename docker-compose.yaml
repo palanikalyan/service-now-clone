@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./request-management-ui
+    container_name: request-management-ui
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
+    networks:
+      - rmnet
+
+  backend:
+    build:
+      context: ./service-now
+    container_name: service-now
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    networks:
+      - rmnet
+
+networks:
+  rmnet:
+    driver: bridge

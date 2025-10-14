@@ -1,0 +1,16 @@
+<nav>
+    <ng-container *ngIf="username">
+        <a routerLink="/user" routerLinkActive="active">User Dashboard</a>
+        <ng-container *ngIf="isAdmin">
+            | <a routerLink="/admin" routerLinkActive="active">Admin Dashboard</a>
+        </ng-container>
+        <span class="user-info">
+            <span class="welcome">Welcome, {{ username }}!</span>
+            <button class="logout-btn" (click)="logout()">Logout</button>
+        </span>
+    </ng-container>
+    <ng-container *ngIf="!username">
+        <a routerLink="/login" routerLinkActive="active">Login</a> |
+        <a routerLink="/register" routerLinkActive="active">Register</a>
+    </ng-container>
+</nav>

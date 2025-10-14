@@ -1,0 +1,27 @@
+/* Global app styles */
+:root{
+	--primary:#1976d2;
+	--muted:#666;
+}
+
+*{box-sizing:border-box}
+body{font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;margin:0;color:#222}
+
+app-navbar{display:block;border-bottom:1px solid #e6e6e6}
+
+.app-main{display:flex;justify-content:center;align-items:flex-start;padding:48px 16px;min-height:calc(100vh - 64px)}
+
+.card{background:#fff;border:1px solid #eee;padding:24px;border-radius:8px;max-width:720px;width:100%;box-shadow:0 6px 18px rgba(0,0,0,0.04)}
+
+form label{display:block;margin-bottom:8px;font-weight:600}
+input,textarea{width:100%;padding:8px;border:1px solid #ccc;border-radius:4px;font-size:14px}
+button{background:var(--primary);color:#fff;border:0;padding:8px 12px;border-radius:4px;cursor:pointer}
+
+.login-wrapper{max-width:420px;width:100%}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.brand h1{font-size:20px;margin:0}
+
+.links a{color:var(--primary);text-decoration:none}
+
+@media (max-width:520px){.app-main{padding:24px}}
+
