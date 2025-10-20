@@ -1,0 +1,53 @@
+---
+# Backend (service-now) role tasks
+- name: Build backend Docker image
+  docker_image:
+    name: "{{ backend_image }}"
+    build:
+      path: "{{ backend_dockerfile_path | dirname }}"
+      dockerfile: "{{ backend_dockerfile_path | basename }}"
+    state: present
+    source: build
+
+- name: Create backend container with H2 database
+  docker_container:
+    name: "{{ backend_container_name }}"
+    image: "{{ backend_image }}"
+    state: present
+    ports:
+      - "{{ backend_port_mapping }}"
+    env:
+      SPRING_DATASOURCE_URL: "{{ backend_db_url }}"
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: "{{ backend_db_driver }}"
+      SPRING_JPA_HIBERNATE_DIALECT: "{{ backend_jpa_hibernate_dialect }}"
+      SPRING_JPA_SHOW_SQL: "{{ backend_jpa_show_sql }}"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "{{ backend_jpa_hibernate_ddl_auto }}"
+      JAVA_OPTS: "{{ backend_java_opts }}"
+    networks:
+      - name: app-network
+    restart_policy: always
+    volumes:
+      - backend_h2_data:/tmp
+
+- name: Ensure backend is running
+  docker_container:
+    name: "{{ backend_container_name }}"
+    state: started
+  notify: restart backend
+
+- name: Wait for backend to be ready
+  wait_for:
+    port: "{{ backend_port }}"
+    host: "{{ ansible_default_ipv4.address | default('127.0.0.1') }}"
+    timeout: 60
+  register: backend_ready
+
+- name: Backend deployment summary
+  debug:
+    msg: |
+      Backend (service-now) deployed with H2 database
+      - Container: {{ backend_container_name }}
+      - Port: {{ backend_port }}
+      - Database: {{ backend_db_type }}
+      - Database URL: {{ backend_db_url }}
+      - Status: Ready

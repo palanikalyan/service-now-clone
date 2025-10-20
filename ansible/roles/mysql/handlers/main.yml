@@ -1,0 +1,6 @@
+---
+# H2 Database handlers
+- name: restart h2
+  shell: docker restart h2-database
+  listen: "restart h2"
+  when: h2_enabled

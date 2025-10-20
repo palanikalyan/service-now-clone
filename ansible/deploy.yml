@@ -1,0 +1,90 @@
+---
+# Main Ansible playbook for 3-tier application deployment
+# Deploys H2 Database (embedded), Backend (service-now), and Frontend (request-management-ui)
+
+- name: Deploy 3-tier application (H2 + Backend + Frontend)
+  hosts: all
+  become: yes
+  vars:
+    # Override these in group_vars, host_vars, or pass via -e flag
+    environment: "{{ deploy_env | default('test') }}"
+    ansible_user: "{{ deploy_user | default('ubuntu') }}"
+
+  pre_tasks:
+    - name: Ensure Docker is installed
+      package:
+        name: docker.io
+        state: present
+      register: docker_install
+      changed_when: false
+
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Create app network
+      docker_network:
+        name: app-network
+        state: present
+        driver: bridge
+
+    - name: Display deployment info
+      debug:
+        msg: |
+          Deploying 3-tier app to {{ environment }} environment
+          - H2 Database (embedded in backend)
+          - Backend will listen on port 8080
+          - Frontend will listen on port 80
+
+  roles:
+    - role: mysql
+      tags: ["database", "h2"]
+      vars_files:
+        - roles/mysql/vars/main.yml
+
+    - role: backend
+      tags: ["backend", "app"]
+      vars_files:
+        - roles/backend/vars/main.yml
+
+    - role: frontend
+      tags: ["frontend", "ui"]
+      vars_files:
+        - roles/frontend/vars/main.yml
+
+  post_tasks:
+    - name: List running containers
+      shell: docker ps --no-trunc
+      register: container_list
+
+    - name: Display service status
+      debug:
+        msg: |
+          3-tier application deployed successfully!
+          {{ container_list.stdout }}
+
+    - name: Health check - Backend
+      wait_for:
+        port: 8080
+        timeout: 10
+      ignore_errors: yes
+
+    - name: Health check - Frontend
+      wait_for:
+        port: 80
+        timeout: 10
+      ignore_errors: yes
+
+    - name: Summary
+      debug:
+        msg: |
+          ============================================
+          DEPLOYMENT SUMMARY
+          ============================================
+          Database:  H2 (embedded in backend)
+          Backend:   Service-Now on port 8080
+          Frontend:  Request-Management-UI on port 80
+          Network:   app-network (bridge)
+          ============================================

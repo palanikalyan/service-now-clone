@@ -1,0 +1,38 @@
+---
+# H2 Database tasks
+# H2 is embedded in Spring Boot by default, so no separate deployment needed
+# Only deploy external H2 server if h2_enabled is true
+
+- name: Skip H2 external server (embedded in app)
+  debug:
+    msg: "H2 database will run embedded in the Spring Boot backend application"
+  when: not h2_enabled
+
+- name: Pull H2 Docker image (optional external server)
+  docker_image:
+    name: "oscarfonts/h2"
+    source: pull
+  when: h2_enabled
+
+- name: Create H2 container (optional)
+  docker_container:
+    name: "h2-database"
+    image: "oscarfonts/h2"
+    state: present
+    ports:
+      - "{{ h2_tcp_port }}:{{ h2_tcp_port }}"
+      - "{{ h2_web_console_port }}:{{ h2_web_console_port }}"
+    env:
+      H2_OPTIONS: "-tcpPort {{ h2_tcp_port }} -baseDir /tmp/h2"
+    volumes:
+      - h2_data:/tmp/h2
+    restart_policy: always
+    networks:
+      - name: app-network
+  when: h2_enabled
+  notify: restart h2
+
+- name: H2 is ready (embedded mode)
+  debug:
+    msg: "H2 database configured for embedded mode in backend"
+  when: not h2_enabled

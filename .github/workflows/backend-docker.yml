@@ -19,6 +19,9 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Make mvnw executable
+        run: chmod +x mvnw
+        working-directory: service-now
       - name: Build with Maven
         run: ./mvnw clean package -DskipTests
         working-directory: service-now
@@ -26,8 +29,9 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+            username: ${{ secrets.DOCKER_USERNAME }}
+            # Use a Docker Hub Access Token (PAT) for DOCKER_PASSWORD secret, not your account password
+            password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build Docker image
         run: docker build -t ${{ secrets.DOCKER_USERNAME }}/service-now-backend:latest .

@@ -1,0 +1,24 @@
+---
+# Backend (service-now) role variables
+backend_app_name: "service-now-backend"
+backend_container_name: "service-now-app"
+backend_image: "service-now-backend:latest"
+backend_port: 8080
+backend_port_mapping: "8080:8080"
+backend_java_opts: "-Xms512m -Xmx1024m"
+
+# H2 Database configuration (embedded in Spring Boot)
+backend_db_type: "h2"
+backend_db_url: "jdbc:h2:file:/tmp/request_management_db;MODE=MYSQL"
+backend_db_driver: "org.h2.Driver"
+backend_jpa_hibernate_dialect: "org.hibernate.dialect.H2Dialect"
+backend_jpa_show_sql: "false"
+backend_jpa_hibernate_ddl_auto: "update"
+
+# Optional: if using external H2 server
+backend_db_h2_external: false
+backend_db_h2_host: "h2-database"
+backend_db_h2_port: "9092"
+
+backend_source_path: "../service-now"
+backend_dockerfile_path: "../service-now/Dockerfile"
