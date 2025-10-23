@@ -72,12 +72,12 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const sonarqubeUrl = '${{ secrets.SONARQUBE_HOST }}';
+            const sonarqubeUrl = 'https://sonarcloud.io/dashboard?id=service-now-clone';
             const projectKey = 'service-now-clone';
             const comment = `## 📊 SonarQube Analysis Results
 
             **Project:** ${projectKey}
-            **SonarQube URL:** [View Analysis](${sonarqubeUrl}/dashboard?id=${projectKey})
+            **SonarQube URL:** [View Analysis](${sonarqubeUrl})
 
             ✅ Analysis Complete - Check the SonarQube dashboard for detailed metrics`;
 
