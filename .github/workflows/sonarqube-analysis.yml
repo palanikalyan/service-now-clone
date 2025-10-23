@@ -1,0 +1,85 @@
+name: SonarQube Static Analysis
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - feature/**
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  sonarqube-analysis:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better analysis
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Cache SonarQube packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Build with Maven
+        run: |
+          cd service-now
+          mvn clean org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+            -Dsonar.projectKey=service-now-clone \
+            -Dsonar.sources=src \
+            -Dsonar.host.url=${{ secrets.SONARQUBE_HOST }} \
+            -Dsonar.login=${{ secrets.SONARQUBE_TOKEN }} \
+            -Dsonar.exclusions=**/test/**,**/target/** \
+            -Dsonar.coverage.exclusions=**/test/** \
+            -DskipTests
+
+      - name: SonarQube Quality Gate Check
+        run: |
+          cd service-now
+          mvn sonar:sonar \
+            -Dsonar.projectKey=service-now-clone \
+            -Dsonar.host.url=${{ secrets.SONARQUBE_HOST }} \
+            -Dsonar.login=${{ secrets.SONARQUBE_TOKEN }}
+
+      - name: Upload SonarQube Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sonarqube-report
+          path: service-now/target/sonar/
+          retention-days: 30
+
+      - name: Comment PR with SonarQube Results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const sonarqubeUrl = '${{ secrets.SONARQUBE_HOST }}';
+            const projectKey = 'service-now-clone';
+            const comment = `## 📊 SonarQube Analysis Results
+
+            **Project:** ${projectKey}
+            **SonarQube URL:** [View Analysis](${sonarqubeUrl}/dashboard?id=${projectKey})
+
+            ✅ Analysis Complete - Check the SonarQube dashboard for detailed metrics`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            })
