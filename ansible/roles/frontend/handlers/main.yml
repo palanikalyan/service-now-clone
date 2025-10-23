@@ -1,0 +1,16 @@
+---
+# Frontend handlers
+- name: restart frontend service
+  shell: docker restart request-management-ui
+  listen: "restart frontend"
+
+- name: rebuild and restart frontend
+  shell: |
+    docker build -t request-management-ui:latest ../request-management-ui/
+    docker stop request-management-ui || true
+    docker run -d \
+      --name request-management-ui \
+      -p 80:80 \
+      --network app-network \
+      request-management-ui:latest
+  listen: "rebuild frontend"

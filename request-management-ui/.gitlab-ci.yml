@@ -1,0 +1,33 @@
+image: node:18
+
+stages:
+  - install
+  - build
+
+cache:
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - request-management-ui/node_modules/
+
+before_script:
+  - cd request-management-ui
+
+install_dependencies:
+  stage: install
+  script:
+    - npm ci
+  artifacts:
+    paths:
+      - request-management-ui/node_modules/
+    expire_in: 1 week
+
+build:
+  stage: build
+  script:
+    - npm run build --if-present
+  artifacts:
+    paths:
+      - request-management-ui/dist/
+    expire_in: 1 week
+  only:
+    - main

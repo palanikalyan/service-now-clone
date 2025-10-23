@@ -1,0 +1,171 @@
+# SonarQube Static Analysis for GitLab CI
+
+stages:
+  - build
+  - sonarqube
+  - quality-gate
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  SONAR_PROJECT_KEY: "service-now-clone"
+  SONAR_HOST_URL: "${SONARQUBE_HOST}"
+
+cache:
+  paths:
+    - .m2/repository/
+    - .sonar/cache/
+
+before_script:
+  - echo "Starting SonarQube Analysis Pipeline"
+
+# Backend - Java/Maven SonarQube Analysis
+sonarqube-backend:
+  stage: sonarqube
+  image: maven:3.8.1-openjdk-17
+  only:
+    - main
+    - develop
+    - merge_requests
+  script:
+    - echo "🔍 Running SonarQube analysis for backend (service-now)"
+    - cd service-now
+    - |
+      mvn clean verify sonar:sonar \
+        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+        -Dsonar.projectName="Service Now Clone" \
+        -Dsonar.sources=src/main \
+        -Dsonar.tests=src/test \
+        -Dsonar.host.url=${SONARQUBE_HOST} \
+        -Dsonar.login=${SONARQUBE_TOKEN} \
+        -Dsonar.exclusions="**/test/**,**/target/**" \
+        -Dsonar.coverage.exclusions="**/test/**" \
+        -Dsonar.java.binaries=target/classes \
+        -Dsonar.java.test.binaries=target/test-classes \
+        -Dsonar.gitlab.commit_sha=${CI_COMMIT_SHA} \
+        -Dsonar.gitlab.ref_name=${CI_COMMIT_BRANCH} \
+        -Dsonar.gitlab.project_id=${CI_PROJECT_ID}
+    - echo "✅ Backend analysis complete"
+  artifacts:
+    reports:
+      codequality: service-now/target/sonar/issues-report.json
+    paths:
+      - service-now/target/sonar/
+    expire_in: 30 days
+  on_failure:
+    - echo "⚠️ Analysis failed - check SonarQube dashboard"
+
+# Frontend - Angular/TypeScript SonarQube Analysis
+sonarqube-frontend:
+  stage: sonarqube
+  image: node:20-alpine
+  only:
+    - main
+    - develop
+    - merge_requests
+  before_script:
+    - apk add --no-cache maven openjdk17
+    - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
+    - unzip -q sonar-scanner-cli-4.8.0.2856-linux.zip
+    - export PATH=$PATH:$PWD/sonar-scanner-4.8.0.2856-linux/bin
+  script:
+    - echo "🔍 Running SonarQube analysis for frontend (request-management-ui)"
+    - cd request-management-ui
+    - npm install
+    - npm run build
+    - |
+      sonar-scanner \
+        -Dsonar.projectKey=${SONAR_PROJECT_KEY}-frontend \
+        -Dsonar.projectName="Request Management UI" \
+        -Dsonar.sources=src \
+        -Dsonar.exclusions="**/node_modules/**,**/dist/**,**/coverage/**,**/*.spec.ts" \
+        -Dsonar.host.url=${SONARQUBE_HOST} \
+        -Dsonar.login=${SONARQUBE_TOKEN} \
+        -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info \
+        -Dsonar.coverage.exclusions="**/*.spec.ts,src/main.ts,src/environments/**"
+    - echo "✅ Frontend analysis complete"
+  artifacts:
+    reports:
+      codequality: request-management-ui/.sonarqube/issues-report.json
+    paths:
+      - request-management-ui/.sonarqube/
+    expire_in: 30 days
+  on_failure:
+    - echo "⚠️ Analysis failed - check SonarQube dashboard"
+
+# Quality Gate Check
+quality-gate:
+  stage: quality-gate
+  image: curlimages/curl:latest
+  only:
+    - main
+    - develop
+    - merge_requests
+  script:
+    - echo "🎯 Checking SonarQube Quality Gate"
+    - |
+      QG_STATUS=$(curl -s \
+        -H "Authorization: Bearer ${SONARQUBE_TOKEN}" \
+        "${SONARQUBE_HOST}/api/qualitygates/project_status?projectKey=${SONAR_PROJECT_KEY}" \
+        | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
+    - echo "Quality Gate Status: $QG_STATUS"
+    - |
+      if [ "$QG_STATUS" = "OK" ]; then
+        echo "✅ Quality Gate PASSED"
+        exit 0
+      else
+        echo "❌ Quality Gate FAILED"
+        exit 1
+      fi
+  allow_failure: true
+  when: on_success
+
+# Report Generation
+sonarqube-report:
+  stage: quality-gate
+  image: curlimages/curl:latest
+  only:
+    - main
+    - develop
+  script:
+    - echo "📊 Generating SonarQube Report"
+    - |
+      curl -s \
+        -H "Authorization: Bearer ${SONARQUBE_TOKEN}" \
+        "${SONARQUBE_HOST}/api/measures/component?component=${SONAR_PROJECT_KEY}&metricKeys=ncloc,complexity,violations,coverage,sqale_rating,security_rating" \
+        > sonarqube-metrics.json
+    - cat sonarqube-metrics.json
+  artifacts:
+    paths:
+      - sonarqube-metrics.json
+    expire_in: 30 days
+  when: on_success
+
+# Merge Request Comment with Results
+mr-comment:
+  stage: quality-gate
+  image: curlimages/curl:latest
+  only:
+    - merge_requests
+  script:
+    - echo "📝 Adding SonarQube results to MR"
+    - |
+      curl -s \
+        -X POST \
+        -H "PRIVATE-TOKEN: ${CI_JOB_TOKEN}" \
+        -d "body=## 📊 SonarQube Analysis Results
+      
+      **Project:** ${SONAR_PROJECT_KEY}
+      
+      🔗 [View Full Analysis](${SONARQUBE_HOST}/dashboard?id=${SONAR_PROJECT_KEY})
+      
+      ✅ Backend & Frontend analysis completed
+      
+      Check the SonarQube dashboard for:
+      - Code Quality Metrics
+      - Security Issues
+      - Code Duplication
+      - Test Coverage
+      - Maintainability Index" \
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes"
+  allow_failure: true
+  when: on_success

@@ -1,0 +1,11 @@
+---
+# H2 Database configuration for Backend
+# H2 is embedded in the Spring Boot application, no separate container needed
+h2_enabled: false  # Set to true only if you need external H2 server
+h2_tcp_port: 9092
+h2_web_console_port: 8082
+
+# Database configuration (passed to backend app)
+db_type: "h2"
+db_name: "request_management_db"
+h2_file_path: "/tmp/request_management_db"  # Or use in-memory: "mem:request_management_db"

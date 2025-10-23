@@ -1,0 +1,33 @@
+---
+# Frontend (request-management-ui) role tasks
+- name: Build frontend Docker image
+  docker_image:
+    name: "{{ frontend_image }}"
+    build:
+      path: "{{ frontend_dockerfile_path | dirname }}"
+      dockerfile: "{{ frontend_dockerfile_path | basename }}"
+    state: present
+    source: build
+
+- name: Create frontend container
+  docker_container:
+    name: "{{ frontend_container_name }}"
+    image: "{{ frontend_image }}"
+    state: present
+    ports:
+      - "{{ frontend_port_mapping }}"
+    networks:
+      - name: app-network
+    restart_policy: always
+
+- name: Ensure frontend is running
+  docker_container:
+    name: "{{ frontend_container_name }}"
+    state: started
+  notify: restart frontend
+
+- name: Wait for frontend to be ready
+  wait_for:
+    port: "{{ frontend_port }}"
+    host: "{{ ansible_default_ipv4.address | default('127.0.0.1') }}"
+    timeout: 30

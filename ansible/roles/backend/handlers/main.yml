@@ -1,0 +1,19 @@
+---
+# Backend handlers
+- name: restart backend service
+  shell: docker restart service-now-app
+  listen: "restart backend"
+
+- name: rebuild and restart backend
+  shell: |
+    docker build -t service-now-backend:latest ../service-now/
+    docker stop service-now-app || true
+    docker run -d \
+      --name service-now-app \
+      -p 8080:8080 \
+      --network app-network \
+      -e SPRING_DATASOURCE_URL=jdbc:h2:file:/tmp/request_management_db;MODE=MYSQL \
+      -e SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.h2.Driver \
+      -e SPRING_JPA_HIBERNATE_DIALECT=org.hibernate.dialect.H2Dialect \
+      service-now-backend:latest
+  listen: "rebuild backend"

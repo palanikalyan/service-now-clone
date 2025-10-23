@@ -1,0 +1,11 @@
+---
+# Frontend (request-management-ui) role variables
+frontend_app_name: "request-management-ui"
+frontend_container_name: "request-management-ui"
+frontend_image: "request-management-ui:latest"
+frontend_port: 80
+frontend_port_mapping: "80:80"
+frontend_source_path: "../request-management-ui"
+frontend_dockerfile_path: "../request-management-ui/Dockerfile"
+frontend_build_command: "npm ci && npm run build"
+frontend_nginx_port: 80

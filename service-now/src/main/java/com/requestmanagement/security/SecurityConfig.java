@@ -21,7 +21,7 @@ public class SecurityConfig {
 
     @Autowired
     private CustomUserDetailsService customUserDetailsService;
-
+String str = "SELECT * FROM users;";
     @Autowired
     private JwtAuthenticationEntryPoint unauthorizedHandler;
 
