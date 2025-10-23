@@ -35,28 +35,23 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
+      - name: Make mvnw executable
+        run: chmod +x ./mvnw
+        working-directory: service-now
+
       - name: Build with Maven
         run: |
           cd service-now
-          mvn clean org.sonarsource.scanner.maven:sonar-maven-plugin:5.0.1.3822:sonar \
-            -Dsonar.projectKey=service-now-clone \
-            -Dsonar.projectName="Service Now Clone" \
-            -Dsonar.sources=src/main \
-            -Dsonar.tests=src/test \
-            -Dsonar.host.url=${{ secrets.SONARQUBE_HOST }} \
-            -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
-            -Dsonar.exclusions="**/test/**,**/target/**" \
-            -Dsonar.coverage.exclusions="**/test/**" \
-            -DskipTests
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ./mvnw clean package -DskipTests
         continue-on-error: true
 
-      - name: SonarQube Quality Gate Check
+      - name: Run SonarQube Analysis (Optional)
+        if: ${{ secrets.SONARQUBE_HOST != '' && secrets.SONAR_TOKEN != '' }}
         run: |
           cd service-now
-          mvn sonar:sonar \
+          ./mvnw sonar:sonar \
             -Dsonar.projectKey=service-now-clone \
+            -Dsonar.projectName="Service Now Clone" \
             -Dsonar.host.url=${{ secrets.SONARQUBE_HOST }} \
             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
         env:
